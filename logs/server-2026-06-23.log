@@ -1,0 +1,42 @@
+[2026-06-23 10:37:20] [INFO] 正在初始化数据库...
+[2026-06-23 10:37:20] [INFO] 数据库文件: D:\chater\data\chat.db
+[2026-06-23 10:37:20] [INFO] 数据库 PRAGMA 配置完成
+[2026-06-23 10:37:20] [INFO] 数据库表结构初始化完成
+[2026-06-23 10:37:20] [INFO] 数据库初始化完成
+[2026-06-23 10:37:20] [INFO] ========================================
+[2026-06-23 10:37:20] [INFO]   实时聊天系统已启动
+[2026-06-23 10:37:20] [INFO] ========================================
+[2026-06-23 10:37:20] [INFO]   本机访问: http://127.0.0.1:3000
+[2026-06-23 10:37:20] [INFO]   局域网访问: http://192.168.56.1:3000
+[2026-06-23 10:37:20] [INFO]   局域网访问: http://192.168.43.4:3000
+[2026-06-23 10:37:20] [INFO] ========================================
+[2026-06-23 10:37:27] [INFO] GET / 304 4ms
+[2026-06-23 10:37:27] [INFO] GET /css/style.css 304 3ms
+[2026-06-23 10:37:27] [INFO] GET /js/api.js 304 2ms
+[2026-06-23 10:37:27] [INFO] GET /js/ws.js 304 1ms
+[2026-06-23 10:37:27] [INFO] GET /js/cache.js 304 4ms
+[2026-06-23 10:37:27] [INFO] GET /js/ui.js 304 2ms
+[2026-06-23 10:37:27] [INFO] GET /js/app.js 304 4ms
+[2026-06-23 10:37:27] [INFO] GET /api/users/by-ip 304 11ms
+[2026-06-23 10:37:27] [INFO] WS 新连接: 127.0.0.1
+[2026-06-23 10:37:30] [INFO] 注册请求: ip=127.0.0.1 username=test
+[2026-06-23 10:37:30] [INFO] 用户注册: id=1 username=test ip=127.0.0.1
+[2026-06-23 10:37:30] [INFO] POST /api/users/register 200 15ms
+[2026-06-23 10:37:33] [INFO] GET /api/block?userId=1 304 4ms
+[2026-06-23 10:37:33] [INFO] GET /api/friends?userId=1 304 2ms
+[2026-06-23 10:37:33] [INFO] GET /api/groups?userId=1 304 4ms
+[2026-06-23 10:37:33] [INFO] GET /api/friends/pending?userId=1 304 2ms
+[2026-06-23 10:37:34] [INFO] WS 127.0.0.1 -> auth (userId=1)
+[2026-06-23 10:37:34] [INFO] WS 认证成功: userId=1 username=test ip=127.0.0.1
+[2026-06-23 10:37:34] [INFO] WS 广播上线: userId=1
+[2026-06-23 10:37:40] [INFO] GET /api/groups?userId=1 304 4ms
+[2026-06-23 10:37:40] [INFO] GET /api/friends?userId=1 304 2ms
+[2026-06-23 10:37:40] [INFO] GET /api/groups?userId=1 304 1ms
+[2026-06-23 10:37:41] [INFO] GET /api/friends?userId=1 304 2ms
+[2026-06-23 10:37:41] [INFO] GET /api/groups?userId=1 304 2ms
+[2026-06-23 10:37:42] [INFO] GET /api/friends?userId=1 304 2ms
+[2026-06-23 10:37:44] [INFO] GET /api/friends?userId=1 304 1ms
+[2026-06-23 10:37:45] [INFO] WS 断开: userId=1 (test)
+[2026-06-23 10:51:06] [INFO] 数据库文件: D:\chater\data\chat.db
+[2026-06-23 10:51:06] [INFO] 数据库 PRAGMA 配置完成
+[2026-06-23 10:51:06] [INFO] 数据库表结构初始化完成

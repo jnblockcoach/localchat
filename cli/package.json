@@ -1,0 +1,12 @@
+{
+  "name": "localchat",
+  "version": "1.0.0",
+  "description": "局域网命令行聊天客户端",
+  "bin": {
+    "localchat": "./index.js"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ws": "^8.16.0"
+  }
+}
