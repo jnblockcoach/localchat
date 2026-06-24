@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LocalChat</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <div id="login-page">
+      <div class="login-box">
+        <h1>LocalChat</h1>
+        <p class="subtitle">局域网即时通讯</p>
+        <div class="login-section">
+          <div class="login-section-title">创建新账号</div>
+          <div class="login-form">
+            <input type="text" id="login-username" placeholder="输入昵称" maxlength="20" autofocus />
+            <button id="login-btn">注册</button>
+          </div>
+        </div>
+        <div class="login-section">
+          <div class="login-section-title">已有账号 — 用ID登录</div>
+          <div class="login-form">
+            <input type="number" id="login-id" placeholder="输入ID" min="1" />
+            <button id="login-id-btn">登录</button>
+          </div>
+        </div>
+        <div class="login-section">
+          <div class="login-section-title">已有账号 — 用昵称查找</div>
+          <div class="login-form">
+            <input type="text" id="login-search-name" placeholder="输入昵称" maxlength="20" />
+            <button id="login-search-btn">查找</button>
+          </div>
+          <div id="login-search-results"></div>
+        </div>
+        <div id="new-user-id" class="login-info" style="color:#4ade80;display:none"></div>
+        <div id="existing-accounts" class="existing-accounts"></div>
+        <div id="login-info" class="login-info"></div>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="user-info">
+            <span class="user-avatar" id="my-avatar">U</span>
+            <div class="user-details">
+              <span class="user-name" id="my-username">--</span>
+              <span class="user-ip" id="my-ip">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="friends">好友</button>
+          <button class="tab-btn" data-tab="groups">群聊</button>
+        </div>
+
+        <div id="friend-requests-badge" class="hidden">
+          <span>新好友请求</span>
+        </div>
+
+
+        <div class="sidebar-search">
+          <input type="text" id="search-input" placeholder="搜索用户(IP/昵称)..." />
+          <button id="search-btn">搜索</button>
+        </div>
+
+        <div class="sidebar-list" id="sidebar-list"></div>
+
+        <div class="sidebar-footer">
+          <button id="online-hosts-btn">在线主机</button>
+          <button id="add-friend-btn">添加好友</button>
+          <button id="create-group-btn">创建群聊</button>
+          <button id="clear-cache-btn" class="clear-cache-btn" title="清除本地缓存">清除缓存</button>
+          <button id="logout-btn" class="logout-btn">退出</button>
+        </div>
+      </div>
+
+      <div class="chat-area">
+        <div class="chat-header" id="chat-header">
+          <div class="chat-title" id="chat-title">选择一个好友或群聊开始聊天</div>
+          <div class="chat-members" id="chat-members"></div>
+        </div>
+
+        <div class="messages" id="messages">
+          <div class="no-chat-selected">
+            <p>选择一个好友或群聊开始聊天</p>
+          </div>
+        </div>
+
+        <div class="chat-input-area" id="chat-input-area">
+          <div class="typing-indicator" id="typing-indicator"></div>
+          <div class="input-row" style="position:relative">
+            <div id="mention-dropdown" class="mention-dropdown hidden"></div>
+            <textarea id="message-input" placeholder="输入消息..." rows="2"></textarea>
+            <button id="file-btn" class="file-btn" title="发送文件">📎</button>
+            <button id="send-btn">发送</button>
+            <input type="file" id="file-input" class="hidden" accept=".md,.txt,.jpg,.jpeg,.png,.bmp,.wav,.mp3,.mp4" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="search-results-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>搜索结果</h3>
+          <button class="modal-close" data-close="search-results-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="search-results-body"></div>
+      </div>
+    </div>
+
+    <div id="add-friend-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加好友</h3>
+          <button class="modal-close" data-close="add-friend-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-label">按ID添加</div>
+          <div class="modal-input-row">
+            <input type="number" id="add-friend-id-input" placeholder="输入好友ID" min="1" />
+            <button id="add-friend-id-btn">添加</button>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.06);margin:12px 0;padding-top:12px">
+            <div class="modal-label">搜索用户</div>
+            <div class="modal-input-row">
+              <input type="text" id="add-friend-input" placeholder="输入好友IP或昵称搜索" />
+              <button id="add-friend-search-btn">搜索</button>
+            </div>
+          </div>
+          <div id="add-friend-results"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="friend-requests-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>好友请求</h3>
+          <button class="modal-close" data-close="friend-requests-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="friend-requests-body"></div>
+      </div>
+    </div>
+
+    <div id="create-group-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>创建群聊</h3>
+          <button class="modal-close" data-close="create-group-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-input-row">
+            <input type="text" id="group-name-input" placeholder="群名称" maxlength="30" />
+          </div>
+          <div class="modal-label">选择群成员（从好友中选）</div>
+          <div id="group-member-list"></div>
+          <button id="confirm-create-group" class="modal-btn">创建群聊</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="add-group-member-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>添加群成员</h3>
+          <button class="modal-close" data-close="add-group-member-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="add-group-member-body"></div>
+      </div>
+    </div>
+
+    <div id="remove-group-member-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>移除群成员</h3>
+          <button class="modal-close" data-close="remove-group-member-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="remove-group-member-body"></div>
+      </div>
+    </div>
+
+    <div id="profile-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>个人信息</h3>
+          <button class="modal-close" data-close="profile-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="profile-content" class="profile-content"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="online-hosts-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>在线主机</h3>
+          <button class="modal-close" data-close="online-hosts-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="online-hosts-body"></div>
+      </div>
+    </div>
+
+    <div id="announcement-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>群公告</h3>
+          <button class="modal-close" data-close="announcement-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div id="announcement-display" class="announcement-display"></div>
+          <div id="announcement-edit-area" class="hidden">
+            <textarea id="announcement-input" class="announcement-input" placeholder="输入群公告..." rows="4" maxlength="500"></textarea>
+            <button id="confirm-announcement" class="modal-btn">发布公告</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="transfer-admin-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>转让管理员</h3>
+          <button class="modal-close" data-close="transfer-admin-modal">&times;</button>
+        </div>
+        <div class="modal-body" id="transfer-admin-body"></div>
+      </div>
+    </div>
+
+    <div id="rename-modal" class="modal-overlay hidden">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>修改昵称</h3>
+          <button class="modal-close" data-close="rename-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-input-row">
+            <input type="text" id="rename-input" placeholder="输入新昵称" maxlength="20" />
+          </div>
+          <button id="confirm-rename" class="modal-btn">确认修改</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/cache.js"></script>
+    <script src="/js/ws.js"></script>
+    <script src="/js/ui.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>

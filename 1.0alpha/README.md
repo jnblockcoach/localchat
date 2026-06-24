@@ -107,7 +107,5 @@ localchat/
 │       ├── file.js
 │       └── cli.js           # CLI 安装指引页
 ├── data/                    # SQLite 数据库 + 上传文件
-├── localchat.bat            # Windows 便携启动
-├── localchat.sh             # Unix 便携启动
 └── package.json
 ```

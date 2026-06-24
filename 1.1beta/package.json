@@ -1,0 +1,26 @@
+{
+  "name": "localchat",
+  "version": "1.1.0-beta",
+  "description": "局域网即时通讯系统",
+  "main": "server/index.js",
+  "bin": {
+    "localchat": "./cli/index.js"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "localchat": "node cli/index.js",
+    "lint": "eslint server/ public/js/ --fix",
+    "format": "prettier --write \"**/*.{js,json,css,html}\""
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "express": "^4.18.0",
+    "multer": "^2.1.1",
+    "terminal-kit": "^3.1.2",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "prettier": "^3.8.4"
+  }
+}
