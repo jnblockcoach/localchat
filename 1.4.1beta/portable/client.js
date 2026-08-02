@@ -94,6 +94,8 @@ class Client {
     this.ws.on('message', (raw) => {
       try {
         const data = JSON.parse(raw.toString());
+        // 被其他设备顶替登录：停止自动重连，避免互踢死循环
+        if (data.type === 'kicked') this._kicked = true;
         const handler = this.handlers[data.type];
         if (handler) handler(data);
       } catch {}
@@ -101,7 +103,7 @@ class Client {
 
     this.ws.on('close', () => {
       this.emit('ws_close');
-      if (this._manualClose) return;
+      if (this._manualClose || this._kicked) return;
       setTimeout(() => this.connect(), 3000);
     });
 

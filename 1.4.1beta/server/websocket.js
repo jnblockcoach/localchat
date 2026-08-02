@@ -89,7 +89,11 @@ function handleAuth(ws, data, clientIp) {
   const old = clients.get(uid);
   if (old && old !== ws && old.readyState === 1) {
     logger.info(`WS 重复登录: userId=${uid} 踢掉旧连接`);
-    try { old.close(); } catch {}
+    try {
+      // 先告知旧连接"被顶替"，让客户端停止自动重连，避免两端互踢死循环
+      old.send(JSON.stringify({ type: 'kicked', userId: uid }));
+      old.close();
+    } catch {}
   }
 
   ws.userId = uid;

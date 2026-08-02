@@ -318,6 +318,18 @@ window.APP = {
     WS.on('ws_connected', () => {
       const el = document.getElementById('connection-status');
       if (el) { el.textContent = '已连接'; el.style.color = '#4ade80'; }
+      // 断线重连成功后重新加载当前对话，补偿错过的消息
+      if (UI.currentChatType && UI.currentChat) {
+        UI.loadChatView(UI.currentChatType, UI.currentChat);
+      }
+    });
+
+    // 被其他设备顶替登录：连接已关闭且不再重连
+    WS.on('kicked', () => {
+      const errEl = document.createElement('div');
+      errEl.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:10px 24px;background:#e94560;color:#fff;border-radius:6px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+      errEl.textContent = '⚠ 该账号已在其他设备登录，本页面已断开连接，请刷新页面重新登录';
+      document.body.appendChild(errEl);
     });
 
     WS.on('ws_disconnected', () => {

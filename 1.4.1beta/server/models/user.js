@@ -25,9 +25,12 @@ class UserModel {
   }
 
   static search(query) {
+    // 转义 LIKE 通配符，避免 % 或 _ 触发全表匹配
+    const escaped = String(query).replace(/[\\%_]/g, (m) => '\\' + m);
+    const like = `%${escaped}%`;
     return getDb()
-      .prepare('SELECT id, ip, username FROM users WHERE ip LIKE ? OR username LIKE ? LIMIT 20')
-      .all(`%${query}%`, `%${query}%`);
+      .prepare("SELECT id, ip, username FROM users WHERE ip LIKE ? ESCAPE '\\' OR username LIKE ? ESCAPE '\\' LIMIT 20")
+      .all(like, like);
   }
 
   static getAllUsers() {

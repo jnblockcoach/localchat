@@ -30,6 +30,10 @@ window.WS = {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        // 被其他设备顶替登录：停止自动重连，避免互踢死循环
+        if (data.type === 'kicked') {
+          this.manualClose = true;
+        }
         const handler = this.handlers[data.type];
         if (handler) {
           handler(data);

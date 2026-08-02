@@ -1229,6 +1229,22 @@ class TerminalUI {
       this._appendSystemMsg('发送失败：连接已断开，请等待自动重连');
     });
 
+    // 被其他设备顶替登录：连接已关闭且不再重连
+    this.client.on('kicked', () => {
+      if (!this._inMainScreen) return;
+      this._appendErrorMsg('⚠ 该账号已在其他设备登录，本连接已被关闭（按 Ctrl+C 退出后重新登录）');
+    });
+
+    // 断线重连成功：重新拉取当前对话历史，补偿断线期间错过的消息
+    this.client.on('ws_open', () => {
+      if (!this._inMainScreen) return;
+      this._drawStatusBar();
+      if (this.currentChatType && this.currentChatId) {
+        this.chatMessages = [];
+        this._loadChatHistory(this.currentChatType, this.currentChatId);
+      }
+    });
+
     // 服务器返回的业务错误（拉黑拒绝、非群成员、无效消息等）
     this.client.on('error', (data) => {
       if (!this._inMainScreen) return;

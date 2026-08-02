@@ -377,10 +377,15 @@ class PortableChat {
     this.client.on('ws_open', () => {
       if (!this.user) return;
       this._print('● 连接已建立');
+      // 断线重连成功：补偿断线期间错过的当前对话消息（只打印断线后的新消息）
+      if (this.currentFriendId) {
+        this._reloadCurrentChat();
+      }
     });
 
     this.client.on('ws_close', () => {
       if (!this.user) return;
+      this._disconnectedAt = Date.now();
       this._print('○ 连接断开，3秒后自动重连...');
     });
 
@@ -437,11 +442,34 @@ class PortableChat {
       this._print(`[新好友] ${u.username || ''} (#${u.id}) 已成为你的好友，输入 /msg ${u.id} 聊天`);
     });
 
+    // 被其他设备顶替登录：连接已关闭且不再重连
+    this.client.on('kicked', () => {
+      if (!this.user) return;
+      this._print('⚠ 该账号已在其他设备登录，本连接已被关闭（请退出后重新登录）');
+    });
+
     // 服务器返回的业务错误（拉黑拒绝、非群成员等）
     this.client.on('error', (data) => {
       if (!this.user) return;
       this._print('⚠ ' + ((data && data.message) || '服务器返回错误'));
     });
+  }
+
+  // 断线期间的消息补偿：只打印断线时间之后的新消息，避免刷屏
+  async _reloadCurrentChat() {
+    try {
+      const res = await this.client.getPrivateHistory(this.user.id, this.currentFriendId, 50, this.user.id);
+      const msgs = Array.isArray(res) ? res : [];
+      const since = this._disconnectedAt || 0;
+      const fresh = msgs.filter((m) => {
+        try { return new Date(m.created_at + 'Z').getTime() > since; } catch { return false; }
+      });
+      for (const m of fresh) {
+        const who = Number(m.sender_id) === Number(this.user.id) ? '你' : (m.sender_name || '#' + m.sender_id);
+        const time = m.created_at ? m.created_at.slice(11, 16) : '';
+        this._print(`[${time}] ${who}: ${m.content}`);
+      }
+    } catch {}
   }
 
   _quit() {
