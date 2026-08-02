@@ -105,7 +105,6 @@ class Client {
   }
 
   uploadFile(filePath, uploaderId) {
-    const stat = fs.statSync(filePath);
     const buffer = fs.readFileSync(filePath);
     const form = new FormData();
     form.append('file', new Blob([buffer]), path.basename(filePath));

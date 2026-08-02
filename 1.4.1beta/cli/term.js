@@ -1,6 +1,5 @@
 const termkit = require('terminal-kit');
 const term = termkit.terminal;
-const ScreenBufferHD = termkit.ScreenBufferHD;
 const fs = require('fs');
 const path = require('path');
 
@@ -359,7 +358,6 @@ class TerminalUI {
   _drawSidebar() {
     const W = this._sidebarW();
     const H = this._screenH();
-    const chatW = this._screenW() - W - 1;
 
     // Clear entire sidebar area + separator column
     for (let y = 2; y < H - 3; y++) {
@@ -451,7 +449,6 @@ class TerminalUI {
   _drawInputBar() {
     const H = this._screenH();
     const W = this._screenW();
-    const sideW = this._sidebarW();
 
     this._eraseLine(H - 2);
     this._put(0, H - 2, '\u2500'.repeat(W), 'gray');
@@ -547,7 +544,6 @@ class TerminalUI {
       }
 
       if (name === 'UP') {
-        const items = this.currentTab === 'friends' ? this.friends : this.groups;
         if (this.contactIndex > 0) {
           this.contactIndex--;
           this._drawSidebar();
@@ -728,13 +724,14 @@ class TerminalUI {
     const command = parts[0].toLowerCase();
 
     switch (command) {
-      case 'help':
+      case 'help': {
         this._appendSystemMsg('── 可用命令 ──────────────────────────────');
         const maxLen = this._commands.length ? Math.max(...this._commands.map(c => c.name.length)) : 0;
         for (const cmd of this._commands) {
           this._appendSystemMsg('  ' + cmd.name + ' '.repeat(Math.max(0, maxLen - cmd.name.length + 2)) + cmd.desc);
         }
         break;
+      }
 
       case 'quit':
       case 'exit':
