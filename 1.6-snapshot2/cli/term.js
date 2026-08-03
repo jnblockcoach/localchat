@@ -3,23 +3,6 @@ const term = termkit.terminal;
 const fs = require('fs');
 const path = require('path');
 
-// 注入 Shift+ESC 按键识别（xterm 修改键序列，主流终端均支持；两种参数顺序变体）
-(function installShiftEsc() {
-  try {
-    const seqs = ['\x1b[27;2;27~', '\x1b[27;27;2~'];
-    if (term.keymap && typeof term.keymap === 'object') {
-      const entries = seqs.map((code) => ({ code, name: 'SHIFT_ESCAPE', matches: ['SHIFT_ESCAPE'] }));
-      term.keymap.SHIFT_ESCAPE = entries;
-      for (const code of seqs) {
-        const len = code.length;
-        for (let i = term.rKeymap.length; i <= len; i++) term.rKeymap[i] = {};
-        term.rKeymap[len][code] = { code, name: 'SHIFT_ESCAPE', matches: ['SHIFT_ESCAPE'] };
-        if (term.rKeymapMaxSize < len) term.rKeymapMaxSize = len;
-      }
-    }
-  } catch {}
-})();
-
 class TerminalUI {
   constructor(client) {
     this.client = client;
@@ -39,9 +22,6 @@ class TerminalUI {
     this.pendingRequests = 0;
     this._uiMode = 'select';       // select=选择栏导航, input=命令/消息输入
     this._selectStage = 'tab';     // tab=标签选择, list=列表选择
-    this._escPending = false;      // Shift+ESC 拆散序列兜底检测
-    this._escSeq = '';
-    this._escTimer = null;
     this._initCommands();
     this._setupWsHandlers();
   }
@@ -606,11 +586,11 @@ class TerminalUI {
     if (this._uiMode === 'select') {
       // 选择模式：提示当前操作而不是输入框
       if (this._selectStage === 'tab') {
-        this._put(1, H - 1, '←→切换 好友/群聊   Enter 确认   Shift+ESC/Ctrl+E 输入命令', 'gray');
+        this._put(1, H - 1, '←→切换 好友/群聊   Enter 确认   Ctrl+E 输入命令', 'gray');
       } else {
         const items = this.currentTab === 'friends' ? this.friends : this.groups;
         if (items.length === 0) {
-          this._put(1, H - 1, (this.currentTab === 'friends' ? '暂无好友 ' : '暂无群聊 ') + '←→换标签   Shift+ESC 输入命令', 'yellow');
+          this._put(1, H - 1, (this.currentTab === 'friends' ? '暂无好友 ' : '暂无群聊 ') + '←→换标签   Ctrl+E 输入命令', 'yellow');
         } else {
           this._put(1, H - 1, '↑↓选择 ' + (this.currentTab === 'friends' ? '好友' : '群聊') + '   Enter 进入聊天   ←→改标签', 'gray');
         }
@@ -632,8 +612,8 @@ class TerminalUI {
       info += '  📩请求:' + this.pendingRequests;
     }
     info += this._uiMode === 'select'
-      ? '  [选择] ←→标签 ↑↓列表 Enter确认 Shift+ESC命令'
-      : '  [输入] ESC返回 Shift+ESC命令 Ctrl+C退出';
+      ? '  [选择] ←→标签 ↑↓列表 Enter确认 Ctrl+E命令'
+      : '  [输入] ESC退出命令/聊天 Ctrl+C退出';
     this._put(1, H - 3, info, this.pendingRequests > 0 ? 'yellow' : 'gray');
 
     // 绘制完成后把光标移回输入栏，避免停在状态栏文字后面
@@ -797,7 +777,7 @@ class TerminalUI {
     }
   }
 
-  // 切换到命令/输入模式（Shift+ESC 或 Ctrl+E）
+  // 切换到命令/输入模式（Ctrl+E）
   _enterInputMode() {
     if (this._uiMode === 'input') return;
     this._uiMode = 'input';
@@ -814,47 +794,19 @@ class TerminalUI {
     term.on('key', (name, matches, data) => {
       if (name === 'CTRL_C') { this._exit(); return; }
 
-      // Shift+ESC / Ctrl+E: 从选择模式进入命令/输入模式
-      if (name === 'SHIFT_ESCAPE' || name === 'SHIFT_ESC' || name === 'CTRL_E') {
+      // Ctrl+E: 从选择模式进入命令/输入模式
+      if (name === 'CTRL_E') {
         this._enterInputMode();
         return;
       }
 
-      // ESCAPE：延迟 60ms 判定——可能是 Shift+ESC 拆散序列 (\x1b[27;2;27~) 的开头
+      // ESC: 退出命令模式 / 退出当前对话 / 逐级返回
       if (name === 'ESCAPE') {
-        this._escPending = true;
-        this._escSeq = '';
-        clearTimeout(this._escTimer);
-        this._escTimer = setTimeout(() => {
-          this._escTimer = null;
-          this._escPending = false;
-          this._doEsc();
-        }, 60);
+        this._doEsc();
         return;
       }
 
-      // Shift+ESC 拆散序列兜底：ESCAPE 后紧跟 [27;2;27~ 或 [27;27;2~ 时识别为 Shift+ESC
-      if (this._escPending) {
-        this._escSeq += name;
-        const t1 = '[27;2;27~';
-        const t2 = '[27;27;2~';
-        if (t1.startsWith(this._escSeq) || t2.startsWith(this._escSeq)) {
-          if (this._escSeq === t1 || this._escSeq === t2) {
-            clearTimeout(this._escTimer);
-            this._escTimer = null;
-            this._escPending = false;
-            this._enterInputMode();
-          }
-          return; // 吞掉序列残渣，不进入输入/导航
-        }
-        // 不是 Shift+ESC 序列：立即执行 ESC 功能，当前键继续正常处理
-        clearTimeout(this._escTimer);
-        this._escTimer = null;
-        this._escPending = false;
-        this._doEsc();
-      }
-
-      // 选择模式：方向键/Enter/ESC 导航，不处理字符输入
+      // 选择模式：方向键/Enter 导航，不处理字符输入
       if (this._uiMode === 'select') {
         this._handleSelectKey(name);
         return;
@@ -885,7 +837,7 @@ class TerminalUI {
       if (data) {
         const controlKeys = ['ENTER', 'BACKSPACE', 'DELETE', 'TAB', 'ESCAPE',
           'UP', 'DOWN', 'LEFT', 'RIGHT', 'HOME', 'END', 'PAGE_UP', 'PAGE_DOWN',
-          'CTRL_C', 'CTRL_T', 'CTRL_R', 'CTRL_S', 'INSERT', 'SHIFT_ESCAPE', 'SHIFT_ESC'];
+          'CTRL_C', 'CTRL_E', 'CTRL_T', 'CTRL_R', 'CTRL_S', 'INSERT'];
         if (controlKeys.includes(name)) return;
 
         const code = typeof data.code === 'number' ? data.code : 0;
