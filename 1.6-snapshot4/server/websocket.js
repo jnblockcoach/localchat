@@ -406,10 +406,24 @@ function notifyNewFriend(userId, friendId) {
   }
 }
 
+function notifyFriendRemoved(userId, friendId) {
+  const friendWs = clients.get(Number(friendId));
+  if (friendWs && friendWs.readyState === 1) {
+    const user = UserModel.findById(userId);
+    friendWs.send(
+      JSON.stringify({
+        type: 'friend_removed',
+        by: user ? { id: user.id, ip: user.ip, username: user.username } : { id: userId },
+      })
+    );
+  }
+}
+
 module.exports = {
   setupWebSocket,
   notifyFriendRequest,
   notifyRequestHandled,
   notifyNewFriend,
+  notifyFriendRemoved,
   clients,
 };

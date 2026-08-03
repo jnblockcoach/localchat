@@ -107,8 +107,13 @@ window.UI = {
         const data = await API.getGroupInfo(id, currentUser.id);
         if (!stillCurrent()) return;
         titleEl.textContent = data.group.name;
-        // 成员名必须先转义再拼入 HTML，防止恶意用户名注入脚本
-        const names = data.members.map((m) => this.escapeHtml(String(m.username))).join(', ');
+        // 成员名必须先转义再拼入 HTML，防止恶意用户名注入脚本；超长时截断
+        const MAX_SHOW = 10;
+        const shown = data.members.slice(0, MAX_SHOW);
+        let names = shown.map((m) => this.escapeHtml(String(m.username))).join(', ');
+        if (data.members.length > MAX_SHOW) {
+          names += ` 等${data.members.length}人`;
+        }
         const isCreator = Number(data.group.creator_id) === Number(currentUser.id);
         const myRole = data.members.find((m) => Number(m.id) === Number(currentUser.id))?.role;
 

@@ -298,7 +298,7 @@ class PortableChat {
       }
       for (const m of msgs) {
         const who = Number(m.sender_id) === Number(this.user.id) ? '你' : (m.sender_name || '#' + m.sender_id);
-        const time = m.created_at ? m.created_at.slice(11, 16) : '';
+        const time = this._fmtTime(m.created_at);
         this._print(`[${time}] ${who}: ${m.content}`);
       }
     } catch {
@@ -392,7 +392,7 @@ class PortableChat {
     this.client.on('new_private_msg', (data) => {
       if (!this.user) return;
       const msg = data.message;
-      const time = msg.created_at ? msg.created_at.slice(11, 16) : '';
+      const time = this._fmtTime(msg.created_at);
       const fromMe = Number(msg.sender_id) === Number(this.user.id);
       const who = fromMe ? '你' : (msg.sender_name || '#' + msg.sender_id);
 
@@ -442,6 +442,18 @@ class PortableChat {
       this._print(`[新好友] ${u.username || ''} (#${u.id}) 已成为你的好友，输入 /msg ${u.id} 聊天`);
     });
 
+    // 好友关系被对方解除：实时提示
+    this.client.on('friend_removed', (data) => {
+      if (!this.user) return;
+      const by = (data && data.by) || {};
+      this._print(`⚠ ${by.username || ('#' + by.id) || '对方'} 删除了好友关系`);
+      if (this.currentFriendId && Number(this.currentFriendId) === Number(by.id)) {
+        this.currentFriendId = null;
+        this._print('已退出当前对话');
+      }
+      this._prompt();
+    });
+
     // 被其他设备顶替登录：连接已关闭且不再重连
     this.client.on('kicked', () => {
       if (!this.user) return;
@@ -466,10 +478,18 @@ class PortableChat {
       });
       for (const m of fresh) {
         const who = Number(m.sender_id) === Number(this.user.id) ? '你' : (m.sender_name || '#' + m.sender_id);
-        const time = m.created_at ? m.created_at.slice(11, 16) : '';
+        const time = this._fmtTime(m.created_at);
         this._print(`[${time}] ${who}: ${m.content}`);
       }
     } catch {}
+  }
+
+  // 服务器时间字段为 UTC，这里转换为本机本地时间显示（HH:MM）
+  _fmtTime(createdAt) {
+    if (!createdAt) return '';
+    const d = new Date(createdAt + 'Z');
+    if (isNaN(d.getTime())) return '';
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
   _quit() {

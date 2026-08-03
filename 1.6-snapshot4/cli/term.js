@@ -78,7 +78,8 @@ class TerminalUI {
 
   _put(x, y, text, color) {
     if (y < 0 || y >= this._screenH()) return;
-    text = String(text).slice(0, this._screenW() - x);
+    // 换行符会破坏全屏布局（多行消息/公告等），统一替换为空格
+    text = String(text).replace(/\n/g, ' ').slice(0, this._screenW() - x);
     term.moveTo(x, y);
     if (color) {
       if (typeof color === 'object') {
@@ -933,7 +934,7 @@ class TerminalUI {
           const sender = Number(msg.sender_id) === Number(this.currentUser.id)
             ? '你'
             : (msg.sender_name || '#' + msg.sender_id);
-          const time = msg.created_at ? msg.created_at.slice(11, 16) : '';
+          const time = this._fmtTime(msg.created_at);
           const text = msg.file_id
             ? '[文件] ' + ((msg.file && msg.file.original_name) || msg.content)
             : msg.content;
@@ -1359,7 +1360,7 @@ class TerminalUI {
       if (user && !user.error) {
         this._appendSystemMsg('--- 用户 #' + user.id + ' ---');
         this._appendSystemMsg('  昵称: ' + user.username);
-        this._appendSystemMsg('  IP: ' + (user.ip || '--'));
+        this._appendSystemMsg('  账号: ' + (user.ip || '--') + '-' + (user.ip_index || '?'));
         this._appendSystemMsg('  注册时间: ' + (user.created_at || '--'));
         return;
       }
@@ -1386,7 +1387,7 @@ class TerminalUI {
     this.client.on('new_private_msg', (data) => {
       if (!this._inMainScreen) return;
       const msg = data.message;
-      const time = msg.created_at ? msg.created_at.slice(11, 16) : '';
+      const time = this._fmtTime(msg.created_at);
       const isCurrent = this.currentChatType === 'friend' &&
         (Number(msg.sender_id) === Number(this.currentChatId) || Number(msg.receiver_id) === Number(this.currentChatId));
 
@@ -1402,7 +1403,7 @@ class TerminalUI {
     this.client.on('new_group_msg', (data) => {
       if (!this._inMainScreen) return;
       const msg = data.message;
-      const time = msg.created_at ? msg.created_at.slice(11, 16) : '';
+      const time = this._fmtTime(msg.created_at);
       const isCurrent = this.currentChatType === 'group' && Number(this.currentChatId) === Number(msg.group_id);
 
       if (isCurrent) {
@@ -1422,7 +1423,7 @@ class TerminalUI {
     this.client.on('new_file_msg', (data) => {
       if (!this._inMainScreen) return;
       const msg = data.message;
-      const time = msg.created_at ? msg.created_at.slice(11, 16) : '';
+      const time = this._fmtTime(msg.created_at);
       const isGroup = msg.type === 'group';
       const isCurrent = isGroup
         ? this.currentChatType === 'group' && Number(this.currentChatId) === Number(msg.group_id)
@@ -1516,6 +1517,21 @@ class TerminalUI {
       this._appendSystemMsg('[新好友已添加]');
     });
 
+    // 好友关系被对方解除：实时提示并刷新列表
+    this.client.on('friend_removed', (data) => {
+      if (!this._inMainScreen) return;
+      const who = (data && data.by && data.by.username) || (data && data.by && '#' + data.by.id) || '对方';
+      this._appendErrorMsg('⚠ ' + who + ' 删除了好友关系');
+      if (this.currentChatType === 'friend' && Number(this.currentChatId) === Number(data.by && data.by.id)) {
+        this.currentChatType = null;
+        this.currentChatId = null;
+        this.chatMessages = [];
+        this._drawHeader();
+        this._drawChatArea();
+      }
+      this._refreshFriendsList();
+    });
+
     this.client.on('ws_close', () => {
       if (!this._inMainScreen) return;
       this._drawStatusBar();
@@ -1523,6 +1539,21 @@ class TerminalUI {
   }
 
   // --- Utilities ---
+
+  // 刷新好友/群聊列表（供事件处理器复用）
+  async _refreshFriendsList() {
+    try { this.friends = await this.client.getFriends(this.currentUser.id); } catch {}
+    try { this.groups = await this.client.getGroups(this.currentUser.id); } catch {}
+    this._drawSidebar();
+  }
+
+  // 服务器时间字段为 UTC，这里转换为本机本地时间显示（HH:MM）
+  _fmtTime(createdAt) {
+    if (!createdAt) return '';
+    const d = new Date(createdAt + 'Z');
+    if (isNaN(d.getTime())) return '';
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  }
 
   _sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));

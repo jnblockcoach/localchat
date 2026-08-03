@@ -163,8 +163,12 @@ window.APP = {
     $('online-hosts-btn').addEventListener('click', () => this.showOnlineHosts());
 
     $('create-group-btn').addEventListener('click', async () => {
-      const friends = await API.getFriends(currentUser.id);
-      UI.showCreateGroupModal(friends);
+      try {
+        const friends = await API.getFriends(currentUser.id);
+        UI.showCreateGroupModal(friends);
+      } catch {
+        alert('获取好友列表失败');
+      }
     });
 
     $('confirm-create-group').addEventListener('click', () => this.createGroup());
@@ -291,6 +295,28 @@ window.APP = {
       }
     });
 
+    // 好友关系被对方解除：提示并刷新
+    WS.on('friend_removed', (data) => {
+      if (!currentUser) return;
+      const by = (data && data.by) || {};
+      const errEl = document.createElement('div');
+      errEl.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:10px 24px;background:#e94560;color:#fff;border-radius:6px;font-size:14px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+      errEl.textContent = `⚠ ${by.username || ('#' + by.id) || '对方'} 已解除好友关系`;
+      document.body.appendChild(errEl);
+      setTimeout(() => errEl.remove(), 4000);
+      if (UI.currentChatType === 'friend' && Number(UI.currentChat) === Number(by.id)) {
+        UI.currentChat = null;
+        UI.currentChatType = null;
+        UI.getEl('messages').innerHTML = '<div class="no-chat-selected"><p>选择一个好友或群聊开始聊天</p></div>';
+        UI.getEl('chat-title').textContent = '选择一个好友或群聊开始聊天';
+        UI.getEl('chat-members').textContent = '';
+        UI.getEl('chat-input-area').classList.add('hidden');
+      }
+      if (UI.currentTab === 'friends') {
+        this.refreshFriendList();
+      }
+    });
+
     WS.on('mention', (data) => {
       const membersEl = UI.getEl('chat-members');
       if (UI.currentChatType === 'group' && Number(UI.currentChat) === Number(data.groupId)) {
@@ -363,7 +389,7 @@ window.APP = {
     CACHE.saveUser(user);
 
     UI.getEl('my-username').textContent = user.username;
-    UI.getEl('my-ip').textContent = `IP: ${user.ip}`;
+    UI.getEl('my-ip').textContent = `IP: ${user.ip}${user.ip_index ? '-' + user.ip_index : ''}`;
     UI.getEl('my-avatar').textContent = user.username.charAt(0).toUpperCase();
 
     UI.hide('login-page');
@@ -626,7 +652,7 @@ window.APP = {
       <div class="profile-avatar-large" style="background:${color}">${UI.escapeHtml(user.username.charAt(0).toUpperCase())}</div>
       <div class="profile-field"><span class="profile-field-label">ID</span><span class="profile-field-value">#${user.id}</span></div>
       <div class="profile-field"><span class="profile-field-label">昵称</span><span class="profile-field-value">${UI.escapeHtml(user.username)}</span></div>
-      <div class="profile-field"><span class="profile-field-label">IP</span><span class="profile-field-value">${user.ip}</span></div>
+      <div class="profile-field"><span class="profile-field-label">IP</span><span class="profile-field-value">${UI.escapeHtml(user.ip)}${user.ip_index ? '-' + user.ip_index : ''}</span></div>
       <div class="profile-field"><span class="profile-field-label">状态</span><span class="profile-field-value" style="color:${isOnline ? '#4ade80' : '#888'}">${isOnline ? '在线' : '离线'}</span></div>
       <div class="profile-field"><span class="profile-field-label">注册时间</span><span class="profile-field-value">${user.created_at || '--'}</span></div>
     `;
@@ -654,7 +680,10 @@ window.APP = {
       return;
     }
 
-    const friends = await API.getFriends(currentUser.id);
+    let friends = [];
+    try {
+      friends = await API.getFriends(currentUser.id);
+    } catch {}
     const friendIds = new Set(friends.map((f) => Number(f.id)));
 
     body.innerHTML = onlineUsers.map((u) => {
@@ -1013,7 +1042,7 @@ window.APP = {
     const announcement = data.group.announcement || '暂无公告';
 
     const isCreator = Number(data.group.creator_id) === Number(currentUser.id);
-    display.innerHTML = `<div class="announcement-text">${UI.escapeHtml(announcement)}</div>`;
+    display.innerHTML = `<div class="announcement-text">${UI.escapeHtml(announcement).replace(/\n/g, '<br>')}</div>`;
 
     if (isCreator) {
       editArea.classList.remove('hidden');

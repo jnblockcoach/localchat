@@ -101,6 +101,8 @@ router.get('/me', (req, res) => {
     if (!id) return res.status(400).json({ error: '缺少用户ID' });
     const user = UserModel.findById(id);
     if (!user) return res.status(404).json({ error: '用户不存在' });
+    // 附带账号序号（IP-N 的 N）
+    user.ip_index = UserModel.getAccountIndex(user.ip, user.id);
     res.json(user);
   } catch (err) {
     logger.error(`获取用户信息失败: ${err.message}`);

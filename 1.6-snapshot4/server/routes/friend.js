@@ -1,7 +1,7 @@
 const express = require('express');
 const FriendModel = require('../models/friend');
 const UserModel = require('../models/user');
-const { notifyFriendRequest, notifyRequestHandled, notifyNewFriend } = require('../websocket');
+const { notifyFriendRequest, notifyRequestHandled, notifyNewFriend, notifyFriendRemoved } = require('../websocket');
 const logger = require('../logger');
 
 const router = express.Router();
@@ -97,6 +97,8 @@ router.delete('/', (req, res) => {
       return res.status(400).json({ error: '缺少参数' });
     }
     FriendModel.deleteFriend(userId, friendId);
+    // 实时通知对方：好友关系已解除
+    notifyFriendRemoved(userId, friendId);
     res.json({ success: true });
   } catch (err) {
     logger.error(`删除好友失败: ${err.message}`);
