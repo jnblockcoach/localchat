@@ -579,10 +579,12 @@ class TerminalUI {
       this._put(sideW + 1, y, ' '.repeat(Math.max(0, chatW - 1)));
     }
 
-    // 顶部横幅：有待处理好友请求时显示，并标注 [R] 操作
-    const startY = this.pendingRequests > 0 ? 3 : 2;
+    // 顶部横幅：常驻显示好友请求入口（N=0 灰色，N>0 黄色）
+    const startY = 3;
     if (this.pendingRequests > 0) {
       this._put(sideW + 2, 2, '📩 收到 ' + this.pendingRequests + ' 条好友请求  [R]查看详情', 'yellow');
+    } else {
+      this._put(sideW + 2, 2, '📩 好友请求: 0  [R]查看', 'gray');
     }
 
     if (this.currentChatType && this.currentChatId) {
@@ -650,7 +652,7 @@ class TerminalUI {
     }
     info += this._uiMode === 'select'
       ? '  [选择] ←→标签 ↑↓列表 Enter确认 Ctrl+E命令'
-      : '  [输入] ESC退出命令/聊天 Ctrl+C退出';
+      : '  [输入] ESC退回选择 R查看请求 Ctrl+C退出';
     this._put(1, H - 3, info, this.pendingRequests > 0 ? 'yellow' : 'gray');
 
     // 绘制完成后把光标移回输入栏，避免停在状态栏文字后面
@@ -789,14 +791,6 @@ class TerminalUI {
       }
       return;
     }
-
-    if (name === 'ESCAPE') {
-      this._uiMode = 'select';
-      this._drawFull();
-      this._drawLayout();
-      term.hideCursor(true);
-      return;
-    }
   }
 
   // 请求处理后刷新列表与好友
@@ -878,6 +872,15 @@ class TerminalUI {
 
   // ESC 功能本体（普通 ESC 触发，或拆散序列判定失败后执行）
   _doEsc() {
+    if (this._uiMode === 'requests') {
+      // 好友请求视图：返回主界面并完整重绘（侧栏/聊天区/横幅）
+      this._uiMode = 'select';
+      this._drawFull();
+      this._drawLayout();
+      term.hideCursor(true);
+      return;
+    }
+
     if (this._uiMode === 'select') {
       // 选择模式：列表阶段返回标签阶段
       if (this._selectStage === 'list') {
@@ -918,6 +921,8 @@ class TerminalUI {
   _enterInputMode() {
     if (this._uiMode === 'input') return;
     this._uiMode = 'input';
+    // 确保侧栏完整渲染（防御任何残留状态）
+    this._drawSidebar();
     this._drawStatusBar();
     this._drawInputBar();
     this._setCursorToInput();
