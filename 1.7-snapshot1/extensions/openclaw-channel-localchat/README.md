@@ -12,13 +12,30 @@
 
 | 能力 | 状态 |
 |---|---|
-| 机器人账号自动注册/复用（IP-序号体系） | ✅ 已实现并测试 |
-| LocalChat WS 收发（私聊/群聊） | ✅ 已实现并测试（12 项） |
-| 群聊 `@机器人名` 触发 | ✅ 已实现并测试 |
-| 断线自动重连 | ✅ |
-| OpenClaw inbound 注入 | 🚧 骨架（标注验证点，待真实环境） |
-| OpenClaw outbound 适配器 | 🚧 骨架（当前由 connector.sendText 承担） |
-| LLM 模型接入 | ⏸ 未接入（连接测试阶段） |
+| 机器人账号自动注册/复用（IP-序号体系，清库后自动重注册） | ✅ 已实现并实测 |
+| LocalChat WS 收发（私聊/群聊） | ✅ 已实现并实测（12 项 + 真实环境） |
+| 群聊 `@机器人名` 触发 | ✅ 已实现并实测 |
+| 断线自动重连（含账号重新校验） | ✅ 已实现并实测 |
+| **OpenClaw Gateway 真实环境加载** | ✅ 已实测（插件 enabled，startAccount 正常） |
+| **LocalChat → OpenClaw inbound 链路** | ✅ 已实测（私聊/群聊@ 消息进入 gateway 日志） |
+| OpenClaw → LocalChat outbound 回复 | 🚧 待接（inbound 注入 OpenClaw 会话后即可获得 AI 回复） |
+| LLM 模型接入 | ⏸ 待确认（OpenClaw 已配 DeepSeek，接好 inbound 即可用） |
+
+## 真实环境实测记录（2026-08-06）
+
+- Node 24.19.0（nvm）+ OpenClaw 2026.7.1-2 + LocalChat 1.7-snapshot1
+- 插件安装：`openclaw plugins install <本目录>` → 配置 `channels.localchat.serverUrl` → `openclaw plugins enable localchat` → 重启 gateway
+- 机器人 `AI助手` 自动注册，WS 稳定连接
+- 私聊与群聊 `@AI助手` 消息均进入 gateway 日志（`[localchat:inbound]`）
+
+### 接入要点（踩坑记录）
+
+1. **gateway 适配器必须在 `base` 内**（createChatChannelPlugin 顶层只接受 base/security/pairing/threading/outbound）
+2. **插件须为纯 ESM**（`require` 会直接崩溃 channel 启动）
+3. 依赖须完整安装（`npm install` 后 ws 存在，openclaw peer 链接保留）
+4. 连接失败会触发 OpenClaw crash-loop breaker（`channels.status` 可见 restartPending），修复后用 `openclaw gateway call channels.start` 手动启动验证
+5. 插件顶层不要使用动态 `import()` 做同步初始化（ESM race 导致加载失败）
+6. 服务器清库后机器人账号失效：重连时自动重新注册（ensureBot）
 
 ## 快速开始
 

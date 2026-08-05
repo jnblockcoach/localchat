@@ -30,54 +30,79 @@ export class LocalChatConnector {
     }
   }
 
+  // 确保机器人账号存在（注册/复用/校验），断线重连时也会调用
+  async ensureBot() {
+    if (this.botUserId) {
+      const me = await this.api(`/api/users/me?id=${this.botUserId}`);
+      if (me && !me.error) {
+        this.user = me;
+        return this.user;
+      }
+      // 账号已不存在（如服务器清库）：重新注册
+    }
+    const res = await this.api('/api/users/by-ip');
+    const users = Array.isArray(res) ? res : [];
+    const existing = users.find((u) => u.username === this.botUsername);
+    if (existing) {
+      this.botUserId = existing.id;
+      this.user = existing;
+      return this.user;
+    }
+    const reg = await this.api('/api/users/register', {
+      method: 'POST',
+      body: JSON.stringify({ username: this.botUsername }),
+    });
+    if (reg.error) throw new Error(`注册机器人账号失败: ${reg.error}`);
+    this.botUserId = reg.user.id;
+    this.user = reg.user;
+    return this.user;
+  }
+
   // 启动：确保机器人账号存在 → 连接 WS → 认证
   async start() {
-    if (!this.botUserId) {
-      // 本机已有同名账号则复用，否则自动注册
-      const res = await this.api('/api/users/by-ip');
-      const users = Array.isArray(res) ? res : [];
-      const existing = users.find((u) => u.username === this.botUsername);
-      if (existing) {
-        this.botUserId = existing.id;
-      } else {
-        const reg = await this.api('/api/users/register', {
-          method: 'POST',
-          body: JSON.stringify({ username: this.botUsername }),
-        });
-        if (reg.error) throw new Error(`注册机器人账号失败: ${reg.error}`);
-        this.botUserId = reg.user.id;
-      }
-    }
-
-    const me = await this.api(`/api/users/me?id=${this.botUserId}`);
-    if (me.error) throw new Error(`机器人账号不存在: ${me.error}`);
-    this.user = me;
+    await this.ensureBot();
     this.log(`[localchat] 机器人就绪: ${this.user.username} (#${this.user.id}) @ ${this.serverUrl}`);
-
     this.connect();
     return this.user;
   }
 
   connect() {
     if (this.stopped) return;
-    this.ws = new WebSocket(this.wsUrl);
+    // 先关闭旧连接，避免新旧并存导致重复登录互踢循环
+    if (this.ws) {
+      try { this.ws.close(); } catch {}
+    }
+    const ws = new WebSocket(this.wsUrl);
+    this.ws = ws;
 
-    this.ws.on('open', () => {
+    ws.on('open', () => {
       this.log('[localchat] WS 已连接');
-      this.ws.send(JSON.stringify({ type: 'auth', userId: this.user.id }));
+      ws.send(JSON.stringify({ type: 'auth', userId: this.user.id }));
     });
 
-    this.ws.on('message', (raw) => this._onMessage(raw));
+    ws.on('message', (raw) => this._onMessage(raw));
 
-    this.ws.on('close', () => {
+    ws.on('close', () => {
+      // 仅当前连接关闭才触发重连（旧连接被替换时的 close 不重连）
+      if (this.ws !== ws) return;
       this.log('[localchat] WS 断开，3 秒后重连');
       if (!this.stopped) {
         clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+        this.reconnectTimer = setTimeout(async () => {
+          try {
+            // 重连前确保机器人账号仍存在（服务器重启/清库后自动重新注册）
+            await this.ensureBot();
+            this.connect();
+          } catch (e) {
+            this.log('[localchat] 重连前检查失败: ' + e.message + '，5 秒后重试');
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = setTimeout(() => this.connect(), 5000);
+          }
+        }, 3000);
       }
     });
 
-    this.ws.on('error', () => {});
+    ws.on('error', () => {});
   }
 
   _onMessage(raw) {

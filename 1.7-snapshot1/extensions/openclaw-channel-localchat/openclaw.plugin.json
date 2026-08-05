@@ -4,6 +4,11 @@
     "onStartup": true
   },
   "channels": ["localchat"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
   "channelConfigs": {
     "localchat": {
       "label": "LocalChat",
