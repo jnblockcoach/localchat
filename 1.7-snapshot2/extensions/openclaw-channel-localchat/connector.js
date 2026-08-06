@@ -146,6 +146,20 @@ export class LocalChatConnector {
       }
     } else if (data.type === 'error') {
       this.log('[localchat] 服务器错误: ' + (data.message || ''));
+    } else if (data.type === 'friend_request') {
+      // 自动接受好友请求，使用户可以立即与 AI 对话
+      const fromId = data.from && data.from.id;
+      if (fromId) {
+        this.api('/api/friends/accept', {
+          method: 'POST',
+          body: JSON.stringify({ userId: this.user.id, friendId: fromId }),
+        })
+          .then((r) => {
+            if (r.error) this.log('[localchat] 自动接受好友失败: ' + r.error);
+            else this.log('[localchat] 已自动接受好友: ' + ((data.from && data.from.username) || '#' + fromId));
+          })
+          .catch((e) => this.log('[localchat] 自动接受好友异常: ' + e.message));
+      }
     }
   }
 
