@@ -752,6 +752,22 @@ window.APP = {
     UI.show('ai-modal');
   },
 
+  // 显示互联 OpenClaw 列表
+  async renderAiPeers() {
+    const listEl = document.getElementById('ai-peer-list');
+    if (!listEl) return;
+    let peers = [];
+    try {
+      const r = await API.getAiPeers();
+      peers = (r && r.peers) || [];
+    } catch {}
+    if (peers.length === 0) { listEl.textContent = '暂无互联'; return; }
+    listEl.innerHTML = peers.map((p) => {
+      const label = p.status === 'accepted' ? `<span style="color:#4ade80">已互联</span>` : `<span style="color:#f59e0b">等待对方确认</span>`;
+      return `<div style="margin-bottom:4px">${p.ip} ${label}</div>`;
+    }).join('');
+  },
+
   // 查看 AI Workspace：文件列表 + 内容
   async showAiWorkspace() {
     const listEl = UI.getEl('workspace-file-list');
