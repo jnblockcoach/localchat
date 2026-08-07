@@ -707,6 +707,18 @@ window.APP = {
     }
     body.innerHTML = html;
 
+    // 机器互联 OpenClaw 区域（与上方内容一次性渲染，避免二次 innerHTML 丢失按钮事件）
+    html += `<div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:14px;padding-top:12px">
+      <div style="margin-bottom:8px;font-weight:bold">机器互联 OpenClaw</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <input id="ai-peer-ip" placeholder="目标机器 IP" style="flex:1;padding:6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#eee" />
+        <button class="search-result-action" id="ai-peer-btn">发起互联</button>
+      </div>
+      <div id="ai-peer-list" style="font-size:12px;color:#888"></div>
+    </div>`;
+    body.innerHTML = html;
+
+    // 统一在一次性渲染后绑定所有按钮（修复二次渲染导致事件丢失）
     const regBtn = document.getElementById('ai-register-btn');
     if (regBtn) {
       regBtn.addEventListener('click', async () => {
@@ -719,18 +731,6 @@ window.APP = {
         this.aiSetup();
       });
     }
-
-    // 机器互联 OpenClaw 区域
-    html += `<div style="border-top:1px solid rgba(255,255,255,0.1);margin-top:14px;padding-top:12px">
-      <div style="margin-bottom:8px;font-weight:bold">机器互联 OpenClaw</div>
-      <div style="display:flex;gap:6px;margin-bottom:8px">
-        <input id="ai-peer-ip" placeholder="目标机器 IP" style="flex:1;padding:6px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#eee" />
-        <button class="search-result-action" id="ai-peer-btn">发起互联</button>
-      </div>
-      <div id="ai-peer-list" style="font-size:12px;color:#888"></div>
-    </div>`;
-    body.innerHTML = html;
-
     const peerIp = document.getElementById('ai-peer-ip');
     const peerBtn = document.getElementById('ai-peer-btn');
     if (peerBtn && peerIp) {
