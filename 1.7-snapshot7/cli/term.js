@@ -832,7 +832,11 @@ class TerminalUI {
   async _showAiView() {
     try {
       const res = await this.client.getAiStatus(this.currentUser ? this.currentUser.id : null);
-      this._aiStatus = res;
+      if (res && res.error) {
+        this._aiStatus = { openclaw: { running: false }, account: null, error: res.error };
+      } else {
+        this._aiStatus = res;
+      }
     } catch {
       this._aiStatus = { openclaw: { running: false }, account: null };
     }
@@ -852,6 +856,11 @@ class TerminalUI {
     this._put(cx + 2, cy + 2, '\u2500'.repeat(52), 'gray');
 
     const st = this._aiStatus || {};
+    if (st.error) {
+      this._put(cx + 2, cy + 4, ' ' + st.error, 'red');
+      this._put(cx + 2, cy + 13, ' 按 ESC 返回', 'gray');
+      return;
+    }
     const oc = st.openclaw || {};
     const acc = st.account || null;
 

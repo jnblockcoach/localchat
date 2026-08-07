@@ -687,6 +687,11 @@ window.APP = {
     this._aiStatus = status;
 
     const body = UI.getEl('ai-modal-body');
+    if (status && status.error) {
+      body.innerHTML = `<div style="color:#e94560;margin-bottom:10px">${UI.escapeHtml(status.error)}</div><button class="modal-btn" onclick="APP.aiSetup()">重试</button>`;
+      UI.show('ai-modal');
+      return;
+    }
     const oc = (status && status.openclaw) || {};
     const acc = (status && status.account) || null;
     let html = `<div style="margin-bottom:10px">本机 OpenClaw：<strong style="color:${oc.running ? '#4ade80' : '#e94560'}">${oc.running ? '● 运行中' : '○ 未检测到'}</strong></div>`;

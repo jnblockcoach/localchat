@@ -48,13 +48,10 @@ function canViewAi(userId) {
   return !!(rel && rel.status === 'accepted');
 }
 
-// 状态：OpenClaw 运行情况 + 已注册的 AI 助理账号（需登录且为 AI 好友，未注册时开放）
+// 状态：OpenClaw 运行情况 + 已注册的 AI 助理账号（登录用户可见，注册流程需要）
 router.get('/status', requireOwnership((req) => req.query.userId), (req, res) => {
   try {
     const account = UserModel.findAiAccount();
-    if (account && !canViewAi(req.query.userId)) {
-      return res.status(403).json({ error: '请先添加 AI 助理为好友' });
-    }
     const openclawPromise = detectOpenClaw();
     openclawPromise.then((openclaw) => {
       const acc = account ? { ...account } : null;
