@@ -22,8 +22,15 @@ initDatabase();
 logger.info('数据库初始化完成');
 
 const app = express();
+// 关闭 ETag：避免浏览器条件请求得到 304 空响应导致前端 res.json() 失败
+app.set('etag', false);
 app.use(express.json());
 app.use(logger.request);
+// API 响应禁用缓存（双保险）
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.use('/api/users', userRoutes);
