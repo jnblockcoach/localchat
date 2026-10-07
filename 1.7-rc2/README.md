@@ -1,8 +1,8 @@
 # LocalChat — 局域网即时通讯系统
 
-> **最新版本：1.7-rc2（发布候选第二版 / npm: 1.7.0-rc.2）** — 经四轮全量审查修复，进入正式版发布前的候选阶段。
+> **版本 1.7-rc2（发布候选第二版 / npm: 1.7.0-rc.2）** — 在 1.7-rc1 基础上完成最终详细审查发现的 G1-G7 收尾修复。
 
-📌 **本仓库按版本目录保存完整快照**：最新代码在 [`1.7-rc2/`](1.7-rc2/)；各轮修复说明见 [`1.7-rc2/RC2-FIXES.md`](1.7-rc2/RC2-FIXES.md)、[`1.7-rc2/RC-FIXES.md`](1.7-rc2/RC-FIXES.md)、[`1.7-rc2/AUDIT-FIXES-2.md`](1.7-rc2/AUDIT-FIXES-2.md)、[`1.7-rc2/AUDIT-FIXES.md`](1.7-rc2/AUDIT-FIXES.md)、[`1.7-rc2/SECURITY-FIXES.md`](1.7-rc2/SECURITY-FIXES.md)。
+📌 **本版为安全大修最终收尾**：修复分段节奏（G1）、截断提示溢出（G2）、限流绕过（G3）等 3 项中危及 4 项低危问题。完整说明见 **[RC2-FIXES.md](RC2-FIXES.md)**；前四轮修复见 **[RC-FIXES.md](RC-FIXES.md)**、**[AUDIT-FIXES-2.md](AUDIT-FIXES-2.md)**、**[AUDIT-FIXES.md](AUDIT-FIXES.md)** 与 **[SECURITY-FIXES.md](SECURITY-FIXES.md)**。
 
 基于 Node.js 的局域网即时通讯系统，支持 **网页版**、**完整命令行版（键盘导航）** 与 **命令行便携版** 三种客户端。
 
@@ -33,6 +33,12 @@
 
 ### 命令行便携版
 - 轻量：仅好友对话与添加好友，行式交互，适合快速使用
+
+### AI 助理（1.7 新增）
+- 接入本机 **OpenClaw**：手工注册 AI 助理账号（`openclaw-IP-N`，不占普通用户序号）
+- 私聊直接对话、群聊 `@AI助理` 触发回复；支持查看 AI Workspace
+- **机器互联**：双方确认后使用对方机器的 OpenClaw（token 链路）
+- 服务器本机 IP 身份验证（账号只能由注册 IP 或服务器本机操作）
 
 ---
 
@@ -103,7 +109,7 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 | 1.7-snapshot1..9 | OpenClaw AI 接入（机器人注册/回复链路/IP 身份验证/机器互联） |
 | 1.7-preview1..4 | 互联 token 完整链路与多轮审查修复 |
 | 1.7-preview5 | 安全大修：读接口 IP 鉴权（Z1）、群删除校验（Z2）、上传鉴权顺序（Z3） |
-| 1.7-preview6 | 全量审查修复：文件越权（H1）、存储型 XSS（H2/H3）、登录 IP（H4）、重复认证（H5）等 |
+| 1.7-preview6 | 全量审查修复：文件越权（H1）、存储型 XSS（H2/H3）、登录 IP（H4）、重复认证（H5）+ 17 项中低危问题 |
 | 1.7-preview7 | 第二轮全量审查：插件重连（R1）、AI 长回复分段（R2）、媒体预览（R3）等 25 项 |
 | 1.7-rc1 | 发布候选：限流硬化（F1）、存储配额（F2）、Unicode 清洗（F5）、日志轮转（F7）、群变更通知（F9）等 F1-F12 |
 | **1.7-rc2** | **候选第二轮：分段节奏（G1）、截断提示（G2）、限流绕过（G3）、CLI 重绘（G4）、字符补充（G5）、索引（G6）、通知去重（G7）** |
@@ -118,10 +124,10 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 ├── cli/             # 完整命令行（terminal-kit TUI，含 scan.js 局域网扫描）
 ├── portable/        # 便携版（仅好友对话）
 ├── extensions/      # OpenClaw Channel 插件（LocalChat ↔ AI 接入）
-├── test/            # 单元 + 集成回归测试（node:test）
+├── test/            # 安全回归测试（node:test）
 ├── server/          # Express + WebSocket + SQLite
 │   ├── models/      # user/friend/group/message/block/file
-│   ├── middleware/  # IP 身份验证（默认拒绝）+ 限流
+│   ├── middleware/  # IP 身份验证（requireOwnership，默认拒绝）
 │   └── routes/      # REST API（含 /cli 安装指引页）
 ├── data/            # 数据库 + 上传文件（运行时生成）
 └── package.json
