@@ -1,0 +1,146 @@
+const express = require('express');
+const UserModel = require('../models/user');
+const { clients } = require('../websocket');
+const { requireOwnership, verifyAuthIp } = require('../middleware/auth');
+const { rateLimit } = require('../middleware/rateLimit');
+const { stripControlSingleLine } = require('../sanitize');
+const { parseId } = require('../util/parse');
+const logger = require('../logger');
+
+const router = express.Router();
+
+const USERNAME_MAX = 20;
+
+// 规范化客户端 IP：IPv6 映射地址 ::ffff:x.x.x.x 还原为 IPv4
+function normalizeIp(ip) {
+  return String(ip || '').replace(/^::ffff:/, '');
+}
+
+router.post('/register', rateLimit({ windowMs: 60000, max: 30, message: '注册过于频繁，请稍后再试' }), (req, res) => {
+  logger.info(`注册请求: ip=${normalizeIp(req.ip)} username=${req.body.username}`);
+  try {
+    const { username } = req.body;
+    // R7：单行字段去除控制字符（防终端注入/日志污染）
+    const name = typeof username === 'string' ? stripControlSingleLine(username) : '';
+    if (!name) {
+      return res.status(400).json({ error: '用户名不能为空' });
+    }
+    if (name.length > USERNAME_MAX) {
+      return res.status(400).json({ error: `用户名不能超过 ${USERNAME_MAX} 个字符` });
+    }
+
+    const ip = normalizeIp(req.ip);
+    const user = UserModel.create(ip, name);
+    // 返回账号序号（IP-N 的 N），方便客户端显示 "IP-N"
+    user.ip_index = UserModel.getAccountIndex(ip, user.id);
+    res.json({ user });
+  } catch (err) {
+    logger.error(`注册失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/login', rateLimit({ windowMs: 60000, max: 20, message: '登录尝试过于频繁，请稍后再试' }), (req, res) => {
+  try {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: '缺少用户ID' });
+
+    let user = null;
+    if (typeof id === 'string' && id.startsWith('openclaw-')) {
+      // AI 账号独立 ID 体系：openclaw-IP-序号
+      user = UserModel.findByDisplayId(id.trim());
+    } else {
+      user = UserModel.findById(parseInt(id));
+    }
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+
+    // H4：登录同样必须验证来源 IP 归属，防止冒用任意账号身份进入客户端
+    if (!verifyAuthIp(req.ip, user)) {
+      logger.warn(`登录被拒（IP 不符）: id=${user.id} ip=${normalizeIp(req.ip)} userIp=${user.ip}`);
+      return res.status(403).json({ error: '身份验证失败：该账号不属于当前设备 IP' });
+    }
+
+    // 附带账号序号，供客户端显示
+    user.ip_index = UserModel.getAccountIndex(user.ip, user.id);
+    logger.info(`用户登录: id=${user.id} username=${user.username}`);
+    res.json({ user });
+  } catch (err) {
+    logger.error(`登录失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/by-ip', (req, res) => {
+  try {
+    const ip = normalizeIp(req.ip);
+    const users = UserModel.findByIpWithIndex(ip);
+    res.json(users);
+  } catch (err) {
+    logger.error(`获取IP用户列表失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/update', requireOwnership((req) => req.body.id), (req, res) => {
+  try {
+    const { id, username } = req.body;
+    if (!id) return res.status(400).json({ error: '缺少用户ID' });
+    // R7：单行字段去除控制字符
+    const name = typeof username === 'string' ? stripControlSingleLine(username) : '';
+    if (!name) return res.status(400).json({ error: '用户名不能为空' });
+    if (name.length > USERNAME_MAX) {
+      return res.status(400).json({ error: `用户名不能超过 ${USERNAME_MAX} 个字符` });
+    }
+
+    const user = UserModel.updateUsername(id, name);
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+    res.json(user);
+  } catch (err) {
+    logger.error(`修改用户名失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/search', (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || !q.trim()) {
+      return res.json([]);
+    }
+    const users = UserModel.search(q.trim());
+    res.json(users);
+  } catch (err) {
+    logger.error(`搜索用户失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 公开资料查询：/me 与 /search 返回同级信息（id/ip/username），不含私密数据；
+// CLI /info 依赖它按 ID 查任意用户，因此不强制本人；身份伪造入口已在 /login 处封堵
+router.get('/me', (req, res) => {
+  try {
+    const id = parseId(req.query.id);
+    if (!id) return res.status(400).json({ error: '参数不合法' });
+    const user = UserModel.findById(id);
+    if (!user) return res.status(404).json({ error: '用户不存在' });
+    // 附带账号序号（IP-N 的 N）
+    user.ip_index = UserModel.getAccountIndex(user.ip, user.id);
+    res.json(user);
+  } catch (err) {
+    logger.error(`获取用户信息失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/online', (req, res) => {
+  try {
+    const userIds = Array.from(clients.keys());
+    const users = userIds.map((id) => UserModel.findById(id)).filter(Boolean);
+    res.json(users);
+  } catch (err) {
+    logger.error(`获取在线用户失败: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;

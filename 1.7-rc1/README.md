@@ -1,8 +1,8 @@
 # LocalChat — 局域网即时通讯系统
 
-> **最新版本：1.7-rc1（发布候选 / npm: 1.7.0-rc.1）** — 经三轮全量审查修复，进入正式版发布前的候选阶段。
+> **版本 1.7-rc1（发布候选 / npm: 1.7.0-rc.1）** — 在 1.7-preview7 基础上收尾全部残余问题，进入正式版发布候选阶段。
 
-📌 **本仓库按版本目录保存完整快照**：最新代码在 [`1.7-rc1/`](1.7-rc1/)；各轮修复说明见 [`1.7-rc1/SECURITY-FIXES.md`](1.7-rc1/SECURITY-FIXES.md)、[`1.7-rc1/AUDIT-FIXES.md`](1.7-rc1/AUDIT-FIXES.md)、[`1.7-rc1/AUDIT-FIXES-2.md`](1.7-rc1/AUDIT-FIXES-2.md)、[`1.7-rc1/RC-FIXES.md`](1.7-rc1/RC-FIXES.md)。
+📌 **本版为安全大修最终收尾**：修复限流器可被打爆（F1）、存储配额缺失（F2）、Unicode 显示欺骗（F5）、日志无轮转（F7）、群变更无通知（F9）等 2 项中危 + 10 项低危问题。完整说明见 **[RC-FIXES.md](RC-FIXES.md)**；前三轮修复见 **[AUDIT-FIXES-2.md](AUDIT-FIXES-2.md)**、**[AUDIT-FIXES.md](AUDIT-FIXES.md)** 与 **[SECURITY-FIXES.md](SECURITY-FIXES.md)**。
 
 基于 Node.js 的局域网即时通讯系统，支持 **网页版**、**完整命令行版（键盘导航）** 与 **命令行便携版** 三种客户端。
 
@@ -33,6 +33,12 @@
 
 ### 命令行便携版
 - 轻量：仅好友对话与添加好友，行式交互，适合快速使用
+
+### AI 助理（1.7 新增）
+- 接入本机 **OpenClaw**：手工注册 AI 助理账号（`openclaw-IP-N`，不占普通用户序号）
+- 私聊直接对话、群聊 `@AI助理` 触发回复；支持查看 AI Workspace
+- **机器互联**：双方确认后使用对方机器的 OpenClaw（token 链路）
+- 服务器本机 IP 身份验证（账号只能由注册 IP 或服务器本机操作）
 
 ---
 
@@ -103,9 +109,9 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 | 1.7-snapshot1..9 | OpenClaw AI 接入（机器人注册/回复链路/IP 身份验证/机器互联） |
 | 1.7-preview1..4 | 互联 token 完整链路与多轮审查修复 |
 | 1.7-preview5 | 安全大修：读接口 IP 鉴权（Z1）、群删除校验（Z2）、上传鉴权顺序（Z3） |
-| 1.7-preview6 | 全量审查修复：文件越权（H1）、存储型 XSS（H2/H3）、登录 IP（H4）、重复认证（H5）等 |
+| 1.7-preview6 | 全量审查修复：文件越权（H1）、存储型 XSS（H2/H3）、登录 IP（H4）、重复认证（H5）+ 17 项中低危问题 |
 | 1.7-preview7 | 第二轮全量审查：插件重连（R1）、AI 长回复分段（R2）、媒体预览（R3）等 25 项 |
-| **1.7-rc1** | **发布候选：残余问题收尾（限流硬化、存储配额、Unicode 清洗、日志轮转、群变更通知等 F1-F12）** |
+| **1.7-rc1** | **发布候选：限流硬化（F1）、存储配额（F2）、Unicode 清洗（F5）、日志轮转（F7）、群变更通知（F9）等 F1-F12** |
 
 ---
 
@@ -117,10 +123,10 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 ├── cli/             # 完整命令行（terminal-kit TUI，含 scan.js 局域网扫描）
 ├── portable/        # 便携版（仅好友对话）
 ├── extensions/      # OpenClaw Channel 插件（LocalChat ↔ AI 接入）
-├── test/            # 单元 + 集成回归测试（node:test）
+├── test/            # 安全回归测试（node:test）
 ├── server/          # Express + WebSocket + SQLite
 │   ├── models/      # user/friend/group/message/block/file
-│   ├── middleware/  # IP 身份验证（默认拒绝）+ 限流
+│   ├── middleware/  # IP 身份验证（requireOwnership，默认拒绝）
 │   └── routes/      # REST API（含 /cli 安装指引页）
 ├── data/            # 数据库 + 上传文件（运行时生成）
 └── package.json
