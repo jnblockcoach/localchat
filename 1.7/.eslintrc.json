@@ -1,0 +1,27 @@
+{
+  "env": {
+    "node": true,
+    "browser": true,
+    "es2022": true
+  },
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "globals": {
+    "API": "writable",
+    "UI": "writable",
+    "WS": "writable",
+    "CACHE": "writable",
+    "currentUser": "writable",
+    "APP": "writable"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-console": "off",
+    "semi": ["warn", "always"],
+    "quotes": ["warn", "single", { "avoidEscape": true }]
+  }
+}

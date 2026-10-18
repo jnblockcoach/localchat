@@ -1,8 +1,8 @@
 # LocalChat — 局域网即时通讯系统
 
-> **最新版本：1.7-rc3（发布候选第三版 / npm: 1.7.0-rc.3）** — 经五轮全量审查修复，进入正式版发布前的最终候选。
+> **最新版本：1.7.0（正式版 / npm: 1.7.0）** — 经六轮全量审查与发布前止血修复，正式发布。
 
-📌 **本仓库按版本目录保存完整快照**：最新代码在 [`1.7-rc3/`](1.7-rc3/)；各轮修复说明见 [`1.7-rc3/RC3-FIXES.md`](1.7-rc3/RC3-FIXES.md)、[`1.7-rc3/RC2-FIXES.md`](1.7-rc3/RC2-FIXES.md)、[`1.7-rc3/RC-FIXES.md`](1.7-rc3/RC-FIXES.md)、[`1.7-rc3/AUDIT-FIXES-2.md`](1.7-rc3/AUDIT-FIXES-2.md)、[`1.7-rc3/AUDIT-FIXES.md`](1.7-rc3/AUDIT-FIXES.md)、[`1.7-rc3/SECURITY-FIXES.md`](1.7-rc3/SECURITY-FIXES.md)。
+📌 **本仓库按版本目录保存完整快照**：最新代码在 [`1.7/`](1.7/)；发布说明与历轮修复见 [`1.7/RELEASE-NOTES.md`](1.7/RELEASE-NOTES.md)、[`1.7/RC3-FIXES.md`](1.7/RC3-FIXES.md)、[`1.7/RC2-FIXES.md`](1.7/RC2-FIXES.md)、[`1.7/RC-FIXES.md`](1.7/RC-FIXES.md)、[`1.7/AUDIT-FIXES-2.md`](1.7/AUDIT-FIXES-2.md)、[`1.7/AUDIT-FIXES.md`](1.7/AUDIT-FIXES.md)、[`1.7/SECURITY-FIXES.md`](1.7/SECURITY-FIXES.md)。
 
 基于 Node.js 的局域网即时通讯系统，支持 **网页版**、**完整命令行版（键盘导航）** 与 **命令行便携版** 三种客户端。
 
@@ -39,7 +39,7 @@
 ## 📦 快速开始
 
 ```bash
-cd 1.7-rc3
+cd 1.7
 npm install        # 首次
 npm start          # 服务器（监听 3000，自动显示局域网 IP）
 ```
@@ -51,7 +51,7 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 | 便携版 | `npm run portable` |
 | CLI 安装指引 | `http://<服务器IP>:3000/cli` |
 
-> 局域网内其他电脑：只需 Node.js + 复制 `1.7-rc3` 目录，运行 `npm run localchat -- --server <服务器IP>:3000`。
+> 局域网内其他电脑：只需 Node.js + 复制 `1.7` 目录，运行 `npm run localchat -- --server <服务器IP>:3000`。
 
 ---
 
@@ -107,14 +107,15 @@ npm start          # 服务器（监听 3000，自动显示局域网 IP）
 | 1.7-preview7 | 第二轮全量审查：插件重连（R1）、AI 长回复分段（R2）、媒体预览（R3）等 25 项 |
 | 1.7-rc1 | 发布候选：限流硬化（F1）、存储配额（F2）、Unicode 清洗（F5）、日志轮转（F7）、群变更通知（F9）等 F1-F12 |
 | 1.7-rc2 | 候选第二轮：分段节奏（G1）、截断提示（G2）、限流绕过（G3）、CLI 重绘（G4）、字符补充（G5）、索引（G6）、通知去重（G7） |
-| **1.7-rc3** | **候选第三轮：目标用户不存在致 500（K1）、扩展文档过期描述；畸形输入扫描 456 次 0 异常** |
+| 1.7-rc3 | 候选第三轮：目标用户不存在致 500（K1）、扩展文档过期描述；畸形输入扫描 456 次 0 异常 |
+| **1.7.0** | **正式版：未认证 WS 帧击穿（C1）、对象/数组 ID 致 500（K2）、数组 query（S1）止血 + 错误边界加固；扫描 590 次 0 异常** |
 
 ---
 
 ## 🏗️ 项目结构
 
 ```
-1.7-rc3/
+1.7/
 ├── public/          # 网页前端（HTML/CSS/JS，无框架）
 ├── cli/             # 完整命令行（terminal-kit TUI，含 scan.js 局域网扫描）
 ├── portable/        # 便携版（仅好友对话）
@@ -134,4 +135,4 @@ Node.js 22+（内置 node:sqlite，免第三方数据库依赖）· Express 4 ·
 
 ---
 
-**LocalChat 1.7-rc3** — 局域网内，自由沟通。
+**LocalChat 1.7.0** — 局域网内，自由沟通。
